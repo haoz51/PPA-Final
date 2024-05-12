@@ -858,7 +858,7 @@ ggplot() +
   geom_sf(data=dat.3, aes(fill = as.factor(gentrified))) + 
   geom_sf(data = PhillyTracts, fill = NA, color = "black") +
   theme_minimal() +
-  labs(title="Predicted Gentrification Area in Chicago") +
+  labs(title="Predicted Gentrification Area in Philadelphia") +
   theme(plot.title = element_text(hjust = 0.5),  
     axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
     legend.position = "right")
@@ -870,7 +870,7 @@ ggplot() +
   geom_sf(data=dat.3, aes(fill = as.factor(actualgentrified))) + 
   geom_sf(data = PhillyTracts, fill = NA, color = "black") +
   theme_minimal() +
-  labs(title="Actual Gentrification Area in Chicago") +
+  labs(title="Actual Gentrification Area in Philadelphia") +
   theme(plot.title = element_text(hjust = 0.5),  
     axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
     legend.position = "right")
