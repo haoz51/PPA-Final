@@ -501,6 +501,53 @@ cvFit <- train(as.factor(gentrified) ~ .,  data = dat %>%
 
 cvFit
 ```
+Predictive Map in Chicago
+
+```{r}
+allPredictions.c <- 
+  predict(model2, newdata = dat, type="response")
+  
+dat.c <- 
+  cbind(dat,allPredictions.c) %>%
+  mutate(allPredictions = round(allPredictions.c * 100), 
+             predicted.gentrified = ifelse(allPredictions > 12.8, 1, 0)) 
+```
+
+```{r}
+dat.c <- dat.c %>%
+  mutate(geometry = st_geometry(final_data))
+dat.c <- st_as_sf(dat.c, sf_column_name = "geometry")
+```
+
+```{r}
+ggplot() + 
+  geom_sf(data=dat.c, aes(fill = as.factor(predicted.gentrified))) + 
+  geom_sf(data = chicagoBoundary, fill = NA, color = "black") +
+  theme_minimal() +
+  labs(title="Predicted Gentrification Area in Chicago") +
+  theme(plot.title = element_text(hjust = 0.05),  
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),  # Smaller x-axis text
+        axis.text.y = element_text(size = 8),  # Smaller y-axis text
+        legend.position = "right")
+
+```
+```{r}
+ ggplot() + 
+  geom_sf(data=dat.c, aes(fill = as.factor(gentrified))) + 
+  geom_sf(data = chicagoBoundary, fill = NA, color = "black") +
+  theme_minimal() +
+  labs(title="Observed Gentrification Area in Chicago") +
+  theme(plot.title = element_text(hjust = 0.05),  
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust=1, size = 8),  # Smaller x-axis text
+        axis.text.y = element_text(size = 8),  # Smaller y-axis text
+        legend.position = "right")
+
+
+```
+
+
+
+
 # Predict Gentrification in Philadelphia
 Then we use our model to predict how gentrification might happen in Philadelphia for validation.
 
@@ -694,8 +741,141 @@ ggplot() +
     legend.position = "right")
 ```
 
+## Calculating Gentrified Area in Philly 
+```{r}
+
+# Download data for 2009 and 2019
+p.data_2009 <- get_acs(geography = "tract",
+  variables = c(education2009, income_var, property_var),
+  year = 2009,
+  state = "PA",
+  county = "Philadelphia",
+  geometry = TRUE,
+  output = "wide")
 
 
+p.data_2019 <- get_acs(
+  geography = "tract",
+  variables = c(education_vars, income_var, property_var),
+  year = 2019,
+  state = "PA",
+  county = "Philadelphia",
+  geometry = TRUE,
+  output = "wide")
+
+
+```
+```{r}
+process_education_data2009 <- function(data) {
+  data %>%
+    mutate(college_degree_or_higher = rowSums(select(., B15002_014E, B15002_015E,
+                                                      B15002_016E, B15002_017E, 
+                                                      B15002_018E, B15002_031E,
+                                                      B15002_032E, B15002_033E, 
+                                                      B15002_034E, B15002_035E), na.rm = TRUE)) %>%
+    select(GEOID, college_degree_or_higher, ends_with("B19013_001E"), ends_with("B25077_001E"))
+}
+
+# Processing function for 2019 data
+process_education_data2019 <- function(data) {
+  data %>%
+    mutate(college_degree_or_higher = rowSums(select(., B15003_021E, B15003_022E, 
+                                                     B15003_023E, 
+                                                     B15003_024E, B15003_025E), 
+                                              na.rm = TRUE)) %>%
+    select(GEOID, college_degree_or_higher, ends_with("B19013_001E"), ends_with("B25077_001E"))
+}
+
+```
+
+
+```{r}
+p.data_2009 <- p.data_2009 %>%
+  st_set_geometry(NULL)
+
+p.data_2019 <- p.data_2019 %>%
+  st_set_geometry(NULL)
+
+p.data_2009_processed <- process_education_data2009(p.data_2009)
+
+p.data_2009_processed <- p.data_2009_processed %>%
+    mutate(income_group = cut(B19013_001E,
+                            breaks = quantile(B19013_001E, probs = c(0, 1/3, 2/3, 1), 
+                                              na.rm = TRUE),
+                            labels = c("Low", "Medium", "High"),
+                            include.lowest = TRUE)) %>%
+  filter(income_group %in% c("Low", "Medium")) %>%
+  na.omit()
+
+p.data_2019_processed <- process_education_data2019(p.data_2019)
+
+
+p.combined_data <- left_join(p.data_2009_processed, p.data_2019_processed, by = "GEOID")
+
+
+p.combined_data <- p.combined_data %>%
+  mutate(
+    percent_change_education = (college_degree_or_higher.y - college_degree_or_higher.x) / college_degree_or_higher.x * 100,
+    percent_change_income = (B19013_001E.y - B19013_001E.x) / B19013_001E.x * 100,
+    percent_change_property = (B25077_001E.y - B25077_001E.x) / B25077_001E.x * 100
+  ) %>%
+  na.omit()
+
+```
+
+Identify Gentrified Areas
+
+```{r}
+mean(p.combined_data$percent_change_income) 
+mean(p.combined_data$percent_change_property) 
+mean(p.combined_data$percent_change_education) 
+
+p.combined_data <- p.combined_data %>%
+  mutate(actualgentrified = ifelse(percent_change_income > 33.42189 & 
+                               percent_change_property > 43.26612 & 
+                               percent_change_education > 73.71237, 1, 0)) %>%
+  select(actualgentrified, GEOID)
+
+dat.3 <- dat.philly %>%
+  st_join(PhillyFinal)
+
+dat.3 <- dat.3 %>%
+  group_by(GEOID) %>%
+  slice(1)
+
+dat.3 <- dat.3 %>%
+  left_join(p.combined_data, by = "GEOID")
+
+dat.3 <- dat.3 %>%
+  na.omit()
+
+```
+
+Comparing Predicted Map with Observed Map
+
+```{r}
+ggplot() + 
+  geom_sf(data=dat.3, aes(fill = as.factor(gentrified))) + 
+  geom_sf(data = PhillyTracts, fill = NA, color = "black") +
+  theme_minimal() +
+  labs(title="Predicted Gentrification Area in Chicago") +
+  theme(plot.title = element_text(hjust = 0.5),  
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+    legend.position = "right")
+```
+
+
+```{r}
+ggplot() + 
+  geom_sf(data=dat.3, aes(fill = as.factor(actualgentrified))) + 
+  geom_sf(data = PhillyTracts, fill = NA, color = "black") +
+  theme_minimal() +
+  labs(title="Actual Gentrification Area in Chicago") +
+  theme(plot.title = element_text(hjust = 0.5),  
+    axis.text.x = element_text(angle = 45, vjust = 1, hjust=1),
+    legend.position = "right")
+
+```
 
 
 
