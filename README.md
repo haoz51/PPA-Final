@@ -1,4 +1,7 @@
-# PPA-Final
+# MUSA 5080 Public Policy Analytics | Final
+
+## Group Member: Kuma Luo, Wenjun Zhu, Hao Zhu
+## Instructor: Dr.Elizabeth Delmelle | Spring 2024 
 
 Objective: Develop a predictive model for gentrification.
 
