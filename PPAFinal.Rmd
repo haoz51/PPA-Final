@@ -1,6 +1,6 @@
 ---
 title: "PPA Final"
-author: "Kuma Luo"
+author: "Kuma Luo, Wenjun Zhu, Hao Zhu"
 date: "2024-05-11"
 output: 
   html_document:
@@ -48,7 +48,7 @@ geoids <- chicago_tracts$geoid10
 ```
 
 
-```{r}
+```{r, eval=FALSE}
 
 # Variables for educational attainment (bachelor's degree or higher)
 education2009 <- c("B15002_014E", "B15002_015E", "B15002_016E", "B15002_017E", "B15002_018E",
@@ -85,6 +85,42 @@ data_2019 <- get_acs(geography = "tract",
 
 ```
 
+```{r, include=FALSE}
+
+# Variables for educational attainment (bachelor's degree or higher)
+education2009 <- c("B15002_014E", "B15002_015E", "B15002_016E", "B15002_017E", "B15002_018E",
+                   "B15002_031E", "B15002_032E", "B15002_033E", "B15002_034E", "B15002_035E")
+
+education_vars <- c("B15003_021E", "B15003_022E", "B15003_023E", "B15003_024E", "B15003_025E")
+
+# Variable for median household income
+income_var <- "B19013_001E"
+
+# Variable for median property value (housing values)
+property_var <- "B25077_001E"
+
+
+# Download data for 2009 and 2019
+data_2009 <- get_acs(geography = "tract",
+                     variables = c(education2009, income_var, property_var),
+                     year = 2009,
+                     survey = "acs5",
+                     state = "IL",
+                     county = "Cook",
+                     output = "wide") %>%
+  filter(GEOID %in% geoids)
+
+
+data_2019 <- get_acs(geography = "tract",
+                     variables = c(education_vars, income_var, property_var),
+                     year = 2019,
+                     survey = "acs5",
+                     state = "IL",
+                     county = "Cook",
+                     output = "wide") %>%
+  filter(GEOID %in% geoids)
+
+```
 
 ```{r}
 process_education_data2009 <- function(data) {
@@ -198,7 +234,7 @@ final_data$Park_Share =replace(final_data$Park_Share, is.na(final_data$Park_Shar
 ```
 
 Demographic Variables
-```{r pressure, echo=FALSE}
+```{r pressure, echo=FALSE, eval=FALSE}
 library(tidycensus)
 library(tidyverse)
 
@@ -239,6 +275,49 @@ mutate(age_30_45 = age_30_34_m + age_30_34_f +
 
 
 ```
+
+```{r pressure1, echo=FALSE, include=FALSE}
+library(tidycensus)
+library(tidyverse)
+
+Geoid <- final_data$geoid10
+
+variables <- c(
+ "B11001_003E", "B11001_007E", "B25024_006E", "B25024_010E", "B25044_010E", "B01001_009E", "B01001_033E","B01001_010E","B01001_034E","B01001_011E",
+  "B01001_035E")
+
+ChicagoData <- get_acs(
+  geography = "tract",
+  variables = variables,
+  year = 2019,
+  state = "IL",
+  county = "Cook",
+  geometry = TRUE,
+  output = "wide")%>%
+  filter(GEOID %in% Geoid)
+
+ChicagoData <- ChicagoData %>%
+  dplyr::select(-dplyr::contains("M"))  
+
+ChicagoData <- ChicagoData %>% rename(
+  age_30_34_m = "B01001_009E",
+  age_30_34_f = "B01001_033E",
+  age_35_39_m = "B01001_010E",
+  age_35_39_f = "B01001_034E",
+  age_40_44_m = "B01001_011E",
+  age_40_44_f = "B01001_035E",
+    married_with_children = "B11001_003E",  
+    total_nonfamily_households = "B11001_007E",
+    units_in_3_to_4_building = "B25024_006E",  
+    units_in_5plus_building = "B25024_010E",
+    units_with_three_cars = "B25044_010E" ) %>%
+mutate(age_30_45 = age_30_34_m + age_30_34_f +
+                age_35_39_m + age_35_39_f +
+                age_40_44_m + age_40_44_f, units_in_3plus_building= units_in_3_to_4_building+ units_in_5plus_building)
+
+
+```
+
 
 ```{r}
 ChicagoData <- as.data.frame(ChicagoData)
@@ -448,7 +527,7 @@ hist(classProbs, main = "Distribution of Predicted Gentrified Areas", xlab = "Pr
 
 ```
 
-## 4.4 Predicted Probability Density of Gentrification in Chicago
+##Predicted Probability Density of Gentrification in Chicago
 
 ```{r plot_preds}
 plotTheme <- theme(
@@ -561,7 +640,44 @@ PhillyTracts <- PhillyTracts %>%
 
 
 Demographic Varibales
-```{r}
+```{r, eval=FALSE}
+variablesPhilly <- c(
+  "B11001_003E", "B25024_006E", "B25024_010E",
+  "B25044_010E", "B01001_009E", "B01001_033E","B01001_010E","B01001_034E","B01001_011E",
+  "B01001_035E"
+)
+
+PhillyData <- get_acs(
+  geography = "tract",
+  variables = variablesPhilly,
+  year = 2019,
+  state = "PA",
+  county = "Philadelphia",
+  geometry = TRUE,
+  output = "wide")
+
+PhillyData <- PhillyData %>%
+  dplyr::select(-dplyr::contains("M"))  
+
+PhillyData <- PhillyData %>% 
+  rename(
+  age_30_34_m = "B01001_009E",
+  age_30_34_f = "B01001_033E",
+  age_35_39_m = "B01001_010E",
+  age_35_39_f = "B01001_034E",
+  age_40_44_m = "B01001_011E",
+  age_40_44_f = "B01001_035E", 
+    married_with_children = "B11001_003E",
+    units_in_3_to_4_building = "B25024_006E",  
+    units_in_5plus_building = "B25024_010E",
+    units_with_three_cars = "B25044_010E" ) %>%
+mutate(age_30_45 = age_30_34_m + age_30_34_f +
+                age_35_39_m + age_35_39_f +
+                age_40_44_m + age_40_44_f, units_in_3plus_building= units_in_3_to_4_building+ units_in_5plus_building)
+
+```
+
+```{r, include=FALSE}
 variablesPhilly <- c(
   "B11001_003E", "B25024_006E", "B25024_010E",
   "B25044_010E", "B01001_009E", "B01001_033E","B01001_010E","B01001_034E","B01001_011E",
@@ -742,7 +858,7 @@ ggplot() +
 ```
 
 ## Calculating Gentrified Area in Philly 
-```{r}
+```{r, eval=FALSE}
 
 # Download data for 2009 and 2019
 p.data_2009 <- get_acs(geography = "tract",
@@ -788,6 +904,51 @@ process_education_data2019 <- function(data) {
 
 ```
 
+```{r, include=FALSE}
+
+# Download data for 2009 and 2019
+p.data_2009 <- get_acs(geography = "tract",
+  variables = c(education2009, income_var, property_var),
+  year = 2009,
+  state = "PA",
+  county = "Philadelphia",
+  geometry = TRUE,
+  output = "wide")
+
+
+p.data_2019 <- get_acs(
+  geography = "tract",
+  variables = c(education_vars, income_var, property_var),
+  year = 2019,
+  state = "PA",
+  county = "Philadelphia",
+  geometry = TRUE,
+  output = "wide")
+
+
+```
+```{r}
+process_education_data2009 <- function(data) {
+  data %>%
+    mutate(college_degree_or_higher = rowSums(select(., B15002_014E, B15002_015E,
+                                                      B15002_016E, B15002_017E, 
+                                                      B15002_018E, B15002_031E,
+                                                      B15002_032E, B15002_033E, 
+                                                      B15002_034E, B15002_035E), na.rm = TRUE)) %>%
+    select(GEOID, college_degree_or_higher, ends_with("B19013_001E"), ends_with("B25077_001E"))
+}
+
+# Processing function for 2019 data
+process_education_data2019 <- function(data) {
+  data %>%
+    mutate(college_degree_or_higher = rowSums(select(., B15003_021E, B15003_022E, 
+                                                     B15003_023E, 
+                                                     B15003_024E, B15003_025E), 
+                                              na.rm = TRUE)) %>%
+    select(GEOID, college_degree_or_higher, ends_with("B19013_001E"), ends_with("B25077_001E"))
+}
+
+```
 
 ```{r}
 p.data_2009 <- p.data_2009 %>%
