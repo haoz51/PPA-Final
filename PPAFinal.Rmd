@@ -529,6 +529,7 @@ hist(classProbs, main = "Distribution of Predicted Gentrified Areas", xlab = "Pr
 
 ##Predicted Probability Density of Gentrification in Chicago
 
+
 ```{r plot_preds}
 plotTheme <- theme(
   plot.title =element_text(size=12),
@@ -597,6 +598,7 @@ dat.c <- dat.c %>%
   mutate(geometry = st_geometry(final_data))
 dat.c <- st_as_sf(dat.c, sf_column_name = "geometry")
 ```
+Notably, the green areas, which represent gentrified tracts, show significant overlap between the two maps, demonstrating the high accuracy of our model in making predictions. Additionally, our predictions include some areas that have not yet undergone gentrification but show potential. Therefore, our model is particularly useful for policymakers to identify and preemptively address areas likely to experience gentrification trends. The maps also suggest that many tracts in the northern part of Chicago are more likely to gentrify, which we suspect is related to the influence of the city's northeast central area.
 
 ```{r}
 ggplot() + 
@@ -1012,7 +1014,10 @@ dat.3 <- dat.3 %>%
 
 ```
 
-Comparing Predicted Map with Observed Map
+*Comparing Predicted Map with Observed Map*
+
+We gathered the same variables from Philadelphia in 2019 and incorporated them into our prediction model, resulting in the predicted gentrification map displayed in below. Upon comparing this with the observed gentrification map in Philly, it becomes evident that the data from Chicago and our model could be effectively adapted to predict gentrification trends in Philadelphia. This provides valuable insights for planners, demonstrating the model’s applicability and effectiveness in different urban contexts. 
+
 
 ```{r}
 ggplot() + 
